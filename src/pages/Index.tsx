@@ -6,9 +6,10 @@ import { Plus } from "lucide-react";
 import { TaskForm } from "@/components/TaskForm";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskProvider, useTask } from "@/contexts/TaskContext";
+import { TaskPagination } from "@/components/TaskPagination";
 
 function TaskList() {
-  const { tasks } = useTask();
+  const { paginatedTasks } = useTask();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   return (
@@ -35,15 +36,17 @@ function TaskList() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {tasks.map((task) => (
+          {paginatedTasks.map((task) => (
             <TaskCard key={task.id} task={task} />
           ))}
-          {tasks.length === 0 && (
+          {paginatedTasks.length === 0 && (
             <div className="col-span-full text-center py-12">
               <p className="text-gray-500">No tasks yet. Create your first task!</p>
             </div>
           )}
         </div>
+        
+        <TaskPagination />
       </div>
     </div>
   );
