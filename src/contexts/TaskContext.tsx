@@ -5,6 +5,7 @@ import { Task, TaskStatus } from "@/types/task";
 interface TaskContextType {
   tasks: Task[];
   paginatedTasks: Task[];
+  filteredTasks: Task[];
   addTask: (task: Omit<Task, "id" | "createdAt">) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
@@ -16,6 +17,14 @@ interface TaskContextType {
     setCurrentPage: (page: number) => void;
     setPageSize: (size: number) => void;
   };
+  search: {
+    searchTerm: string;
+    setSearchTerm: (term: string) => void;
+  };
+  filter: {
+    statusFilter: string;
+    setStatusFilter: (status: string) => void;
+  };
 }
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -26,23 +35,37 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     return savedTasks ? JSON.parse(savedTasks) : [];
   });
 
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6); // Default to 6 tasks per page
 
-  // Calculate paginated tasks
+  // Apply filters to get filtered tasks
+  const filteredTasks = React.useMemo(() => {
+    return tasks.filter((task) => {
+      const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           task.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || task.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [tasks, searchTerm, statusFilter]);
+
+  // Calculate paginated tasks from filtered tasks
   const paginatedTasks = React.useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    return tasks.slice(startIndex, endIndex);
-  }, [tasks, currentPage, pageSize]);
+    return filteredTasks.slice(startIndex, endIndex);
+  }, [filteredTasks, currentPage, pageSize]);
 
-  // Calculate total pages
+  // Calculate total pages based on filtered tasks
   const totalPages = React.useMemo(() => {
-    return Math.ceil(tasks.length / pageSize) || 1; // Ensure at least 1 page
-  }, [tasks.length, pageSize]);
+    return Math.ceil(filteredTasks.length / pageSize) || 1; // Ensure at least 1 page
+  }, [filteredTasks.length, pageSize]);
 
-  // Ensure currentPage is valid when tasks or pageSize changes
+  // Ensure currentPage is valid when filtered tasks or pageSize changes
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
@@ -81,6 +104,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       value={{ 
         tasks, 
         paginatedTasks,
+        filteredTasks,
         addTask, 
         updateTask, 
         deleteTask, 
@@ -91,6 +115,14 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
           pageSize,
           setCurrentPage,
           setPageSize,
+        },
+        search: {
+          searchTerm,
+          setSearchTerm,
+        },
+        filter: {
+          statusFilter,
+          setStatusFilter,
         }
       }}
     >

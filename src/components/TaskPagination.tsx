@@ -12,8 +12,13 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function TaskPagination() {
-  const { pagination } = useTask();
+  const { pagination, filteredTasks } = useTask();
   const { currentPage, totalPages, pageSize, setCurrentPage, setPageSize } = pagination;
+
+  // If there are no tasks, don't show pagination
+  if (filteredTasks.length === 0) {
+    return null;
+  }
 
   // Create array of page numbers
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -44,12 +49,16 @@ export function TaskPagination() {
         </Select>
       </div>
 
+      <div className="text-sm text-gray-500">
+        Showing {filteredTasks.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to {Math.min(currentPage * pageSize, filteredTasks.length)} of {filteredTasks.length} tasks
+      </div>
+
       <Pagination>
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious 
               onClick={() => handlePageChange(currentPage - 1)}
-              className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
             />
           </PaginationItem>
           
@@ -58,6 +67,7 @@ export function TaskPagination() {
               <PaginationLink 
                 isActive={currentPage === page} 
                 onClick={() => handlePageChange(page)}
+                className="cursor-pointer"
               >
                 {page}
               </PaginationLink>
@@ -67,7 +77,7 @@ export function TaskPagination() {
           <PaginationItem>
             <PaginationNext 
               onClick={() => handlePageChange(currentPage + 1)}
-              className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
             />
           </PaginationItem>
         </PaginationContent>

@@ -46,7 +46,13 @@ export function TaskForm({ initialData, onSubmit, mode = "create" }: TaskFormPro
         description: "Your task has been updated successfully.",
       });
     } else {
-      addTask(data);
+      // Ensure all required fields are present before calling addTask
+      const taskData: Omit<Task, "id" | "createdAt"> = {
+        title: data.title,
+        description: data.description,
+        status: data.status
+      };
+      addTask(taskData);
       toast({
         title: "Task created",
         description: "Your new task has been created successfully.",
