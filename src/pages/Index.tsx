@@ -1,14 +1,12 @@
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { TaskForm } from "@/components/TaskForm";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskProvider, useTask } from "@/contexts/TaskContext";
 import { TaskPagination } from "@/components/TaskPagination";
 import { TaskSearch } from "@/components/TaskSearch";
 import { TaskFilter } from "@/components/TaskFilter";
+import { TaskHeader } from "@/components/TaskHeader";
 
 function TaskList() {
   const { paginatedTasks, filteredTasks } = useTask();
@@ -18,25 +16,7 @@ function TaskList() {
     <div className="min-h-screen bg-gray-50">
       <div className="container py-8">
         <div className="flex flex-col gap-4 mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900">Tasks</h1>
-              <p className="text-gray-600 mt-2">Manage your tasks efficiently</p>
-            </div>
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" /> New Task
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Task</DialogTitle>
-                </DialogHeader>
-                <TaskForm onSubmit={() => setIsCreateOpen(false)} />
-              </DialogContent>
-            </Dialog>
-          </div>
+          <TaskHeader isCreateOpen={isCreateOpen} setIsCreateOpen={setIsCreateOpen} />
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <TaskSearch />
