@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -26,7 +25,7 @@ interface TaskFormProps {
 }
 
 export function TaskForm({ initialData, onSubmit, mode = "create" }: TaskFormProps) {
-  const { addTask, updateTask } = useTask();
+  const { addTask, updateTask, isLoading } = useTask();
   const { toast } = useToast();
 
   const form = useForm<TaskFormData>({
@@ -38,13 +37,9 @@ export function TaskForm({ initialData, onSubmit, mode = "create" }: TaskFormPro
     },
   });
 
-  const handleSubmit = (data: TaskFormData) => {
+  const handleSubmit = async (data: TaskFormData) => {
     if (mode === "edit" && initialData) {
-      updateTask(initialData.id, data);
-      toast({
-        title: "Task updated",
-        description: "Your task has been updated successfully.",
-      });
+      await updateTask(initialData.id, data);
     } else {
       // Ensure all required fields are present before calling addTask
       const taskData: Omit<Task, "id" | "createdAt"> = {
@@ -52,11 +47,7 @@ export function TaskForm({ initialData, onSubmit, mode = "create" }: TaskFormPro
         description: data.description,
         status: data.status
       };
-      addTask(taskData);
-      toast({
-        title: "Task created",
-        description: "Your new task has been created successfully.",
-      });
+      await addTask(taskData);
     }
     form.reset();
     onSubmit?.();
@@ -113,8 +104,15 @@ export function TaskForm({ initialData, onSubmit, mode = "create" }: TaskFormPro
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">
-          {mode === "edit" ? "Update Task" : "Create Task"}
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {mode === "edit" ? "Updating..." : "Creating..."}
+            </>
+          ) : (
+            <>{mode === "edit" ? "Update Task" : "Create Task"}</>
+          )}
         </Button>
       </form>
     </Form>

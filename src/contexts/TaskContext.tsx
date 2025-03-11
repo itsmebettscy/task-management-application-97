@@ -1,15 +1,18 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Task, TaskStatus } from "@/types/task";
+import { api } from "@/services/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface TaskContextType {
   tasks: Task[];
   paginatedTasks: Task[];
   filteredTasks: Task[];
-  addTask: (task: Omit<Task, "id" | "createdAt">) => void;
-  updateTask: (id: string, updates: Partial<Task>) => void;
-  deleteTask: (id: string) => void;
-  getTask: (id: string) => Task | undefined;
+  addTask: (task: Omit<Task, "id" | "createdAt">) => Promise<void>;
+  updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  getTask: (id: string) => Promise<Task | null>;
+  isLoading: boolean;
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -25,15 +28,15 @@ interface TaskContextType {
     statusFilter: string;
     setStatusFilter: (status: string) => void;
   };
+  fetchTasks: () => Promise<void>;
 }
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export function TaskProvider({ children }: { children: React.ReactNode }) {
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    const savedTasks = localStorage.getItem("tasks");
-    return savedTasks ? JSON.parse(savedTasks) : [];
-  });
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState("");
@@ -72,31 +75,104 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }
   }, [totalPages, currentPage]);
 
+  // Fetch tasks on component mount
   useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
+    fetchTasks();
+  }, []);
 
-  const addTask = (task: Omit<Task, "id" | "createdAt">) => {
-    const newTask: Task = {
-      ...task,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
-    setTasks((prev) => [...prev, newTask]);
+  const fetchTasks = async () => {
+    setIsLoading(true);
+    try {
+      const data = await api.getTasks();
+      setTasks(data);
+    } catch (error) {
+      toast({
+        title: "Error fetching tasks",
+        description: "Could not fetch your tasks. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error fetching tasks:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const updateTask = (id: string, updates: Partial<Task>) => {
-    setTasks((prev) =>
-      prev.map((task) => (task.id === id ? { ...task, ...updates } : task))
-    );
+  const addTask = async (task: Omit<Task, "id" | "createdAt">) => {
+    setIsLoading(true);
+    try {
+      const newTask = await api.createTask(task);
+      setTasks((prevTasks) => [...prevTasks, newTask]);
+      toast({
+        title: "Task created",
+        description: "Your task has been created successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error creating task",
+        description: "Could not create your task. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error creating task:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const deleteTask = (id: string) => {
-    setTasks((prev) => prev.filter((task) => task.id !== id));
+  const updateTask = async (id: string, updates: Partial<Task>) => {
+    setIsLoading(true);
+    try {
+      const updatedTask = await api.updateTask(id, updates);
+      if (updatedTask) {
+        setTasks((prevTasks) =>
+          prevTasks.map((task) => (task.id === id ? updatedTask : task))
+        );
+        toast({
+          title: "Task updated",
+          description: "Your task has been updated successfully.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error updating task",
+        description: "Could not update your task. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error updating task:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const getTask = (id: string) => {
-    return tasks.find((task) => task.id === id);
+  const deleteTask = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const success = await api.deleteTask(id);
+      if (success) {
+        setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
+        toast({
+          title: "Task deleted",
+          description: "Your task has been deleted successfully.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error deleting task",
+        description: "Could not delete your task. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error deleting task:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getTask = async (id: string) => {
+    try {
+      return await api.getTaskById(id);
+    } catch (error) {
+      console.error("Error getting task:", error);
+      return null;
+    }
   };
 
   return (
@@ -109,6 +185,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         updateTask, 
         deleteTask, 
         getTask,
+        isLoading,
         pagination: {
           currentPage,
           totalPages,
@@ -123,7 +200,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         filter: {
           statusFilter,
           setStatusFilter,
-        }
+        },
+        fetchTasks
       }}
     >
       {children}

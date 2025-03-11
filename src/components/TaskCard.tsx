@@ -3,11 +3,12 @@ import { Task } from "@/types/task";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { useTask } from "@/contexts/TaskContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { TaskForm } from "./TaskForm";
+import { Link } from "react-router-dom";
 
 const statusColors = {
   "todo": "bg-yellow-500",
@@ -23,16 +24,20 @@ const statusLabels = {
 
 export function TaskCard({ task }: { task: Task }) {
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const { deleteTask } = useTask();
+  const { deleteTask, isLoading } = useTask();
 
   return (
-    <Card className="p-6 space-y-4 transition-all duration-300 hover:shadow-lg animate-slide-in">
+    <Card className="p-6 space-y-4 transition-all duration-300 hover:shadow-lg animate-fade-in group">
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <Badge variant="outline" className={`${statusColors[task.status]} text-white`}>
             {statusLabels[task.status]}
           </Badge>
-          <h3 className="text-xl font-semibold mt-2">{task.title}</h3>
+          <Link to={`/task/${task.id}`} className="block">
+            <h3 className="text-xl font-semibold mt-2 group-hover:text-blue-600 transition-colors">
+              {task.title}
+            </h3>
+          </Link>
         </div>
         <div className="flex space-x-2">
           <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
@@ -56,15 +61,22 @@ export function TaskCard({ task }: { task: Task }) {
             variant="outline" 
             size="icon"
             onClick={() => deleteTask(task.id)}
+            disabled={isLoading}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
-      <p className="text-gray-600">{task.description}</p>
-      <p className="text-sm text-gray-400">
-        Created: {new Date(task.createdAt).toLocaleDateString()}
-      </p>
+      <p className="text-gray-600 line-clamp-2">{task.description}</p>
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-gray-400">
+          Created: {new Date(task.createdAt).toLocaleDateString()}
+        </p>
+        <Link to={`/task/${task.id}`} className="text-blue-500 hover:text-blue-700 flex items-center text-sm">
+          <span className="mr-1">View Details</span>
+          <ExternalLink className="h-3 w-3" />
+        </Link>
+      </div>
     </Card>
   );
 }

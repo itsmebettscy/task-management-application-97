@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import TaskDetail from "./pages/TaskDetail";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Index />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/task/:id" 
+        element={
+          <ProtectedRoute>
+            <TaskDetail />
           </ProtectedRoute>
         } 
       />
