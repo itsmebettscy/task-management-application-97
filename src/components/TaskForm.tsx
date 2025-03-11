@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTask } from "@/contexts/TaskContext";
 import { Task } from "@/types/task";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 const taskSchema = z.object({
   title: z.string().min(1, "Title is required"),
