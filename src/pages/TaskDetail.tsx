@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTask } from "@/contexts/TaskContext";
@@ -11,6 +10,7 @@ import { TaskForm } from "@/components/TaskForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TaskDetailSkeleton } from "@/components/TaskDetailSkeleton";
 import { useToast } from "@/hooks/use-toast";
+import { TaskProvider } from "@/contexts/TaskContext";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +34,7 @@ const statusLabels = {
   "completed": "Completed",
 };
 
-export default function TaskDetail() {
+function TaskDetailContent() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getTask, deleteTask, isLoading } = useTask();
@@ -207,5 +207,13 @@ export default function TaskDetail() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+export default function TaskDetail() {
+  return (
+    <TaskProvider>
+      <TaskDetailContent />
+    </TaskProvider>
   );
 }
