@@ -1,83 +1,101 @@
 
+import axios from 'axios';
 import { Task, TaskStatus } from "@/types/task";
 
-// Simulate API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Mock API service
+// API service
 export const api = {
   // GET /tasks - Fetch all tasks
   async getTasks(): Promise<Task[]> {
-    // Get tasks from localStorage
-    const tasks = localStorage.getItem("tasks");
-    await delay(500); // Simulate network delay
-    return tasks ? JSON.parse(tasks) : [];
+    try {
+      const response = await axios.get(`${API_URL}/tasks`);
+      
+      // Transform MongoDB _id to id for frontend compatibility
+      return response.data.map((task: any) => ({
+        id: task._id,
+        title: task.title,
+        description: task.description,
+        status: task.status as TaskStatus,
+        createdAt: task.createdAt
+      }));
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      throw error;
+    }
   },
 
   // GET /tasks/:id - Fetch a single task
   async getTaskById(id: string): Promise<Task | null> {
-    const tasks = localStorage.getItem("tasks");
-    await delay(300);
-    if (!tasks) return null;
-    
-    const taskList: Task[] = JSON.parse(tasks);
-    const task = taskList.find(task => task.id === id);
-    
-    // Add debugging to help trace the issue
-    console.log(`Fetching task with ID: ${id}`);
-    console.log(`Found task:`, task);
-    
-    return task || null;
+    try {
+      const response = await axios.get(`${API_URL}/tasks/${id}`);
+      const task = response.data;
+      
+      console.log(`Fetching task with ID: ${id}`);
+      console.log('Found task:', task);
+      
+      // Transform MongoDB _id to id for frontend compatibility
+      return {
+        id: task._id,
+        title: task.title,
+        description: task.description,
+        status: task.status as TaskStatus,
+        createdAt: task.createdAt
+      };
+    } catch (error) {
+      console.error(`Error fetching task with ID ${id}:`, error);
+      return null;
+    }
   },
 
   // POST /tasks - Create a new task
   async createTask(task: Omit<Task, "id" | "createdAt">): Promise<Task> {
-    const tasks = localStorage.getItem("tasks");
-    await delay(600);
-    
-    const taskList: Task[] = tasks ? JSON.parse(tasks) : [];
-    const newTask: Task = {
-      ...task,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
-    
-    const updatedTasks = [...taskList, newTask];
-    localStorage.setItem("tasks", JSON.stringify(updatedTasks));
-    
-    return newTask;
+    try {
+      const response = await axios.post(`${API_URL}/tasks`, task);
+      const newTask = response.data;
+      
+      // Transform MongoDB _id to id for frontend compatibility
+      return {
+        id: newTask._id,
+        title: newTask.title,
+        description: newTask.description,
+        status: newTask.status as TaskStatus,
+        createdAt: newTask.createdAt
+      };
+    } catch (error) {
+      console.error('Error creating task:', error);
+      throw error;
+    }
   },
 
   // PUT /tasks/:id - Update a task
   async updateTask(id: string, updates: Partial<Task>): Promise<Task | null> {
-    const tasks = localStorage.getItem("tasks");
-    await delay(400);
-    if (!tasks) return null;
-    
-    const taskList: Task[] = JSON.parse(tasks);
-    const taskIndex = taskList.findIndex(task => task.id === id);
-    
-    if (taskIndex === -1) return null;
-    
-    const updatedTask = { ...taskList[taskIndex], ...updates };
-    taskList[taskIndex] = updatedTask;
-    localStorage.setItem("tasks", JSON.stringify(taskList));
-    
-    return updatedTask;
+    try {
+      const response = await axios.put(`${API_URL}/tasks/${id}`, updates);
+      const updatedTask = response.data;
+      
+      // Transform MongoDB _id to id for frontend compatibility
+      return {
+        id: updatedTask._id,
+        title: updatedTask.title,
+        description: updatedTask.description,
+        status: updatedTask.status as TaskStatus,
+        createdAt: updatedTask.createdAt
+      };
+    } catch (error) {
+      console.error(`Error updating task with ID ${id}:`, error);
+      return null;
+    }
   },
 
   // DELETE /tasks/:id - Delete a task
   async deleteTask(id: string): Promise<boolean> {
-    const tasks = localStorage.getItem("tasks");
-    await delay(350);
-    if (!tasks) return false;
-    
-    const taskList: Task[] = JSON.parse(tasks);
-    const filteredTasks = taskList.filter(task => task.id !== id);
-    
-    if (filteredTasks.length === taskList.length) return false;
-    
-    localStorage.setItem("tasks", JSON.stringify(filteredTasks));
-    return true;
+    try {
+      await axios.delete(`${API_URL}/tasks/${id}`);
+      return true;
+    } catch (error) {
+      console.error(`Error deleting task with ID ${id}:`, error);
+      return false;
+    }
   }
 };
