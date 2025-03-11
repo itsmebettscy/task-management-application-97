@@ -37,7 +37,7 @@ const statusLabels = {
 function TaskDetailContent() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getTask, deleteTask, isLoading } = useTask();
+  const { getTask, deleteTask, isLoading, fetchTasks } = useTask();
   const [task, setTask] = useState<Task | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -46,13 +46,33 @@ function TaskDetailContent() {
 
   useEffect(() => {
     async function loadTask() {
-      if (!id) return;
+      if (!id) {
+        console.error("No task ID provided");
+        setLoading(false);
+        return;
+      }
       
       try {
+        console.log(`Loading task with ID: ${id}`);
         setLoading(true);
+        
+        await fetchTasks();
+        
         const taskData = await getTask(id);
-        setTask(taskData);
+        console.log("Task data loaded:", taskData);
+        
+        if (taskData) {
+          setTask(taskData);
+        } else {
+          console.error("Task not found");
+          toast({
+            title: "Error",
+            description: "Task not found",
+            variant: "destructive",
+          });
+        }
       } catch (error) {
+        console.error("Error loading task:", error);
         toast({
           title: "Error",
           description: "Failed to load task details",
@@ -64,7 +84,7 @@ function TaskDetailContent() {
     }
     
     loadTask();
-  }, [id, getTask, toast]);
+  }, [id, getTask, toast, fetchTasks]);
 
   const handleDelete = async () => {
     if (!task) return;
@@ -146,7 +166,6 @@ function TaskDetailContent() {
                     initialData={task}
                     onSubmit={() => {
                       setIsEditOpen(false);
-                      // Refresh task data
                       getTask(task.id).then(updatedTask => {
                         if (updatedTask) setTask(updatedTask);
                       });

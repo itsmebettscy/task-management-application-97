@@ -1,4 +1,3 @@
-
 import { Task } from "@/types/task";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -72,7 +71,7 @@ export function TaskCard({ task }: { task: Task }) {
         <p className="text-sm text-gray-400">
           Created: {new Date(task.createdAt).toLocaleDateString()}
         </p>
-        <Link to={`/task/${task.id}`} className="text-blue-500 hover:text-blue-700 flex items-center text-sm">
+        <Link to={`/task/${task.id}`} className="text-blue-500 hover:text-blue-700 flex items-center text-sm" aria-label={`View details for ${task.title}`}>
           <span className="mr-1">View Details</span>
           <ExternalLink className="h-3 w-3" />
         </Link>

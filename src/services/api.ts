@@ -22,6 +22,11 @@ export const api = {
     
     const taskList: Task[] = JSON.parse(tasks);
     const task = taskList.find(task => task.id === id);
+    
+    // Add debugging to help trace the issue
+    console.log(`Fetching task with ID: ${id}`);
+    console.log(`Found task:`, task);
+    
     return task || null;
   },
 

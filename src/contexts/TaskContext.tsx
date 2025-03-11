@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Task, TaskStatus } from "@/types/task";
 import { api } from "@/services/api";
@@ -38,15 +37,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Search and filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(6); // Default to 6 tasks per page
+  const [pageSize, setPageSize] = useState(6);
 
-  // Apply filters to get filtered tasks
   const filteredTasks = React.useMemo(() => {
     return tasks.filter((task) => {
       const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -56,26 +52,22 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     });
   }, [tasks, searchTerm, statusFilter]);
 
-  // Calculate paginated tasks from filtered tasks
   const paginatedTasks = React.useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return filteredTasks.slice(startIndex, endIndex);
   }, [filteredTasks, currentPage, pageSize]);
 
-  // Calculate total pages based on filtered tasks
   const totalPages = React.useMemo(() => {
-    return Math.ceil(filteredTasks.length / pageSize) || 1; // Ensure at least 1 page
+    return Math.ceil(filteredTasks.length / pageSize) || 1;
   }, [filteredTasks.length, pageSize]);
 
-  // Ensure currentPage is valid when filtered tasks or pageSize changes
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
   }, [totalPages, currentPage]);
 
-  // Fetch tasks on component mount
   useEffect(() => {
     fetchTasks();
   }, []);
@@ -168,7 +160,16 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   const getTask = async (id: string) => {
     try {
-      return await api.getTaskById(id);
+      console.log(`Getting task with ID: ${id} from context`);
+      const cachedTask = tasks.find(task => task.id === id);
+      if (cachedTask) {
+        console.log("Found task in context state:", cachedTask);
+        return cachedTask;
+      }
+      
+      const taskData = await api.getTaskById(id);
+      console.log("Task from API:", taskData);
+      return taskData;
     } catch (error) {
       console.error("Error getting task:", error);
       return null;
