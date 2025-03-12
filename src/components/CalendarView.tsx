@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Task } from "@/types/task";
 import { TaskCard } from "./TaskCard";
 import { useTask } from "@/contexts/TaskContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,18 +10,18 @@ export function CalendarView() {
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   
-  // Get tasks for the selected date
-  const tasksForSelectedDay = tasks.filter(task => {
-    const taskDate = new Date(task.createdAt);
-    return isSameDay(taskDate, selectedDate);
-  });
-  
   // Helper function to check if two dates are the same day
   const isSameDay = (date1: Date, date2: Date): boolean => {
     return date1.getDate() === date2.getDate() && 
            date1.getMonth() === date2.getMonth() && 
            date1.getFullYear() === date2.getFullYear();
   };
+  
+  // Get tasks for the selected date
+  const tasksForSelectedDay = tasks.filter(task => {
+    const taskDate = new Date(task.createdAt);
+    return isSameDay(taskDate, selectedDate);
+  });
   
   // Format date to display
   const formatDate = (date: Date): string => {
@@ -49,10 +48,9 @@ export function CalendarView() {
     const firstDayOfWeek = firstDayOfMonth.getDay();
     
     // Add days from previous month to fill the first week
-    const daysFromPrevMonth = firstDayOfWeek;
-    const prevMonth = new Date(currentYear, currentMonth, 0);
-    for (let i = daysFromPrevMonth - 1; i >= 0; i--) {
-      days.push(new Date(currentYear, currentMonth - 1, prevMonth.getDate() - i));
+    for (let i = firstDayOfWeek; i > 0; i--) {
+      const prevMonthDay = new Date(currentYear, currentMonth, 1 - i);
+      days.push(prevMonthDay);
     }
     
     // Add all days of current month
@@ -60,8 +58,8 @@ export function CalendarView() {
       days.push(new Date(currentYear, currentMonth, i));
     }
     
-    // Add days from next month to complete the grid (6 rows of 7 days)
-    const remainingDays = 42 - days.length;
+    // Add days from next month to complete the grid
+    const remainingDays = 42 - days.length; // 6 rows of 7 days
     for (let i = 1; i <= remainingDays; i++) {
       days.push(new Date(currentYear, currentMonth + 1, i));
     }
@@ -96,10 +94,15 @@ export function CalendarView() {
     return date.toLocaleString('default', { month: 'long' });
   };
 
+  // For debugging - check if we have any tasks
+  console.log("All tasks:", tasks);
+  console.log("Tasks for selected day:", tasksForSelectedDay);
+  console.log("Selected date:", selectedDate);
+
   return (
     <div className="flex flex-col md:flex-row gap-6 pb-6">
       <div className="w-full md:w-1/3">
-        <div className="bg-card rounded-lg p-3 shadow">
+        <div className="bg-white rounded-lg p-3 shadow">
           {/* Calendar header */}
           <div className="flex justify-between items-center mb-4">
             <button 
@@ -139,7 +142,7 @@ export function CalendarView() {
               return (
                 <div 
                   key={index}
-                  onClick={() => setSelectedDate(day)}
+                  onClick={() => setSelectedDate(new Date(day))}
                   className={`
                     p-2 h-12 text-center relative cursor-pointer rounded
                     ${isCurrentMonth ? 'text-gray-800' : 'text-gray-400'}
@@ -152,7 +155,7 @@ export function CalendarView() {
                     {day.getDate()}
                   </span>
                   {taskCount > 0 && (
-                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-5 h-5 bg-primary text-white rounded-full text-xs flex items-center justify-center">
+                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-5 h-5 bg-blue-500 text-white rounded-full text-xs flex items-center justify-center">
                       {taskCount}
                     </div>
                   )}
@@ -164,14 +167,14 @@ export function CalendarView() {
       </div>
       
       <div className="w-full md:w-2/3">
-        <div className="bg-card rounded-lg shadow p-4">
+        <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-xl font-semibold mb-4 text-gray-800">
             {formatDate(selectedDate)}
           </h2>
           
           <div className="space-y-4">
             <AnimatePresence>
-              {tasksForSelectedDay.length > 0 ? (
+              {tasksForSelectedDay && tasksForSelectedDay.length > 0 ? (
                 tasksForSelectedDay.map(task => (
                   <motion.div
                     key={task.id}
