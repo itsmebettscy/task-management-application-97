@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, momentLocalizer } from "react-big-calendar";
+import { Calendar, momentLocalizer, Event } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Task } from "@/types/task";
@@ -11,9 +11,18 @@ import { motion, AnimatePresence } from "framer-motion";
 // Create a localizer for the Calendar
 const localizer = momentLocalizer(moment);
 
+// Define the event type
+interface TaskEvent extends Event {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  task: Task;
+}
+
 export function CalendarView() {
   const { tasks } = useTask();
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
   // Get tasks for the selected date (based on creation date for simplicity)
   const tasksForSelectedDay = selectedDate
@@ -24,17 +33,23 @@ export function CalendarView() {
     : [];
 
   // Convert tasks to events format for react-big-calendar
-  const events = tasks.map(task => ({
+  const events: TaskEvent[] = tasks.map(task => ({
     id: task.id,
     title: task.title,
     start: new Date(task.createdAt),
     end: new Date(task.createdAt),
-    task: task
+    task: task,
+    resource: null
   }));
 
   // Handle event selection
-  const handleSelectEvent = (event) => {
+  const handleSelectEvent = (event: TaskEvent) => {
     setSelectedDate(event.start);
+  };
+
+  // Handle date selection
+  const handleSelectSlot = (slotInfo: { start: Date }) => {
+    setSelectedDate(slotInfo.start);
   };
 
   return (
@@ -47,10 +62,13 @@ export function CalendarView() {
             startAccessor="start"
             endAccessor="end"
             onSelectEvent={handleSelectEvent}
+            onSelectSlot={handleSelectSlot}
+            selectable={true}
             date={selectedDate}
-            onNavigate={date => setSelectedDate(date)}
+            onNavigate={(date: Date) => setSelectedDate(date)}
             views={['month']}
             defaultView="month"
+            style={{ height: '100%' }} // This is critical for the calendar to show
           />
         </div>
       </div>
