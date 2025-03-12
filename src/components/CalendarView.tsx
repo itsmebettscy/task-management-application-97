@@ -104,16 +104,16 @@ export function CalendarView() {
           <div className="flex justify-between items-center mb-4">
             <button 
               onClick={goToPreviousMonth}
-              className="p-2 rounded-full hover:bg-gray-200"
+              className="p-2 rounded-full hover:bg-gray-200 text-gray-800"
             >
               &lt;
             </button>
-            <h2 className="text-xl font-semibold">
+            <h2 className="text-xl font-semibold text-gray-800">
               {getMonthName(currentMonth)} {currentYear}
             </h2>
             <button 
               onClick={goToNextMonth}
-              className="p-2 rounded-full hover:bg-gray-200"
+              className="p-2 rounded-full hover:bg-gray-200 text-gray-800"
             >
               &gt;
             </button>
@@ -122,7 +122,7 @@ export function CalendarView() {
           {/* Weekday headers */}
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="text-center font-medium text-sm py-1">
+              <div key={day} className="text-center font-medium text-sm py-1 text-gray-700">
                 {day}
               </div>
             ))}
@@ -142,15 +142,17 @@ export function CalendarView() {
                   onClick={() => setSelectedDate(day)}
                   className={`
                     p-2 h-12 text-center relative cursor-pointer rounded
-                    ${isCurrentMonth ? 'text-gray-900' : 'text-gray-400'}
+                    ${isCurrentMonth ? 'text-gray-800' : 'text-gray-400'}
                     ${isToday ? 'bg-blue-100' : ''}
-                    ${isSelected ? 'bg-blue-200 font-bold' : ''}
+                    ${isSelected ? 'bg-blue-200' : ''}
                     hover:bg-gray-100
                   `}
                 >
-                  <span>{day.getDate()}</span>
+                  <span className={`${isSelected ? 'font-bold' : ''}`}>
+                    {day.getDate()}
+                  </span>
                   {taskCount > 0 && (
-                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-5 h-5 bg-primary text-primary-foreground rounded-full text-xs flex items-center justify-center">
+                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-5 h-5 bg-primary text-white rounded-full text-xs flex items-center justify-center">
                       {taskCount}
                     </div>
                   )}
@@ -163,7 +165,7 @@ export function CalendarView() {
       
       <div className="w-full md:w-2/3">
         <div className="bg-card rounded-lg shadow p-4">
-          <h2 className="text-xl font-semibold mb-4">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">
             {formatDate(selectedDate)}
           </h2>
           
@@ -185,7 +187,7 @@ export function CalendarView() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="p-6 text-center text-muted-foreground"
+                  className="p-6 text-center text-gray-500"
                 >
                   No tasks for this date
                 </motion.div>
