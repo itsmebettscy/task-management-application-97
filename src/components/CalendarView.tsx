@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
+import { Task } from "@/types/task";
 import { TaskCard } from "./TaskCard";
 import { format, isSameDay, parseISO } from "date-fns";
 import { useTask } from "@/contexts/TaskContext";
@@ -9,20 +10,18 @@ export function CalendarView() {
   const { tasks } = useTask();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
-  // Debugging: Check if tasks are being fetched correctly
-  console.log("Tasks:", tasks);
-
-  // Ensure createdAt is correctly parsed
+  // Ensure `createdAt` is parsed correctly
   const tasksForSelectedDay = selectedDate
     ? tasks.filter(task => {
-        const taskDate = parseISO(task.createdAt); // Ensures proper parsing
-        return isSameDay(taskDate, selectedDate);
+        const taskDate = task.createdAt ? new Date(task.createdAt) : null;
+        return taskDate && isSameDay(taskDate, selectedDate);
       })
     : [];
 
-  // Count tasks per day
+  // Group tasks by date for calendar indicator
   const tasksByDate = tasks.reduce((acc, task) => {
-    const date = format(parseISO(task.createdAt), "yyyy-MM-dd");
+    if (!task.createdAt) return acc;
+    const date = format(new Date(task.createdAt), "yyyy-MM-dd");
     acc[date] = (acc[date] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -34,8 +33,22 @@ export function CalendarView() {
         <Calendar
           mode="single"
           selected={selectedDate}
-          onSelect={(date) => date && setSelectedDate(date)} // Fixes selection issue
+          onSelect={setSelectedDate}
           className="bg-card rounded-lg p-3 shadow"
+          dayContentRenderer={(day) => {
+            const dateKey = format(day, "yyyy-MM-dd");
+            const taskCount = tasksByDate[dateKey] || 0;
+            return (
+              <div className="relative flex justify-center items-center h-full">
+                <div>{day.getDate()}</div>
+                {taskCount > 0 && (
+                  <div className="absolute bottom-1 w-4 h-4 bg-primary text-primary-foreground rounded-full text-xs flex items-center justify-center">
+                    {taskCount}
+                  </div>
+                )}
+              </div>
+            );
+          }}
         />
       </div>
 
