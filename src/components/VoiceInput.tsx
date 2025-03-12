@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff } from "lucide-react";
 import { motion } from "framer-motion";
@@ -10,58 +10,15 @@ interface VoiceInputProps {
 
 export function VoiceInput({ onTextCaptured }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState("");
   const [isSupported, setIsSupported] = useState(true);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const { toast } = useToast();
+  let recognition: SpeechRecognition | null = null;
 
   useEffect(() => {
-    // Check if SpeechRecognition is supported
     if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
       setIsSupported(false);
-      return;
     }
-
-    // Create and configure SpeechRecognition instance
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-
-    // Handle speech recognition results
-    recognition.onresult = (event) => {
-      const result = Array.from(event.results)
-        .map((r) => r[0].transcript)
-        .join(" ");
-      setTranscript(result);
-    };
-
-    // When recognition ends, update state and send text
-    recognition.onend = () => {
-      setIsListening(false);
-      if (transcript.trim()) {
-        onTextCaptured(transcript);
-        toast({
-          title: "Voice captured",
-          description: "Your voice input has been processed.",
-        });
-      }
-    };
-
-    // Handle errors
-    recognition.onerror = (event) => {
-      setIsListening(false);
-      console.error("Speech recognition error:", event.error);
-      toast({
-        title: "Voice input error",
-        description: `Error: ${event.error}`,
-        variant: "destructive",
-      });
-    };
-
-    recognitionRef.current = recognition;
-  }, [transcript, onTextCaptured, toast]);
+  }, []);
 
   const toggleListening = () => {
     if (!isSupported) {
@@ -81,19 +38,61 @@ export function VoiceInput({ onTextCaptured }: VoiceInputProps) {
   };
 
   const startListening = () => {
-    if (!recognitionRef.current) return;
     setIsListening(true);
-    setTranscript("");
-    recognitionRef.current.start();
+
+    // @ts-ignore - TypeScript doesn't recognize webkitSpeechRecognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+
+    let finalTranscript = "";
+
+    recognition.onresult = (event) => {
+      finalTranscript = event.results[0][0].transcript;
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      if (finalTranscript.trim()) {
+        onTextCaptured(finalTranscript);
+        toast({
+          title: "Voice captured",
+          description: "Your voice input has been processed.",
+        });
+      } else {
+        toast({
+          title: "No speech detected",
+          description: "Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+      toast({
+        title: "Voice input error",
+        description: `Error: ${event.error}`,
+        variant: "destructive",
+      });
+    };
+
+    recognition.start();
   };
 
   const stopListening = () => {
-    if (!recognitionRef.current) return;
     setIsListening(false);
-    recognitionRef.current.stop();
+    if (recognition) {
+      recognition.stop();
+    }
   };
 
-  if (!isSupported) return null;
+  if (!isSupported) {
+    return null;
+  }
 
   return (
     <div>
@@ -112,8 +111,6 @@ export function VoiceInput({ onTextCaptured }: VoiceInputProps) {
           <Mic className="h-4 w-4" />
         )}
       </Button>
-
-      {transcript && <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">"{transcript}"</div>}
     </div>
   );
 }
