@@ -1,7 +1,6 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Loader2 } from "lucide-react";
+import { Mic, MicOff } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,22 +12,63 @@ export function VoiceInput({ onTextCaptured }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isSupported, setIsSupported] = useState(true);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     // Check if SpeechRecognition is supported
-    if (!('webkitSpeechRecognition' in window) && 
-        !('SpeechRecognition' in window)) {
+    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
       setIsSupported(false);
+      return;
     }
-  }, []);
+
+    // Create and configure SpeechRecognition instance
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    // Handle speech recognition results
+    recognition.onresult = (event) => {
+      const result = Array.from(event.results)
+        .map((r) => r[0].transcript)
+        .join(" ");
+      setTranscript(result);
+    };
+
+    // When recognition ends, update state and send text
+    recognition.onend = () => {
+      setIsListening(false);
+      if (transcript.trim()) {
+        onTextCaptured(transcript);
+        toast({
+          title: "Voice captured",
+          description: "Your voice input has been processed.",
+        });
+      }
+    };
+
+    // Handle errors
+    recognition.onerror = (event) => {
+      setIsListening(false);
+      console.error("Speech recognition error:", event.error);
+      toast({
+        title: "Voice input error",
+        description: `Error: ${event.error}`,
+        variant: "destructive",
+      });
+    };
+
+    recognitionRef.current = recognition;
+  }, [transcript, onTextCaptured, toast]);
 
   const toggleListening = () => {
     if (!isSupported) {
       toast({
         title: "Speech recognition not supported",
         description: "Your browser doesn't support voice input.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -41,82 +81,39 @@ export function VoiceInput({ onTextCaptured }: VoiceInputProps) {
   };
 
   const startListening = () => {
+    if (!recognitionRef.current) return;
     setIsListening(true);
     setTranscript("");
-
-    // @ts-ignore - TypeScript doesn't know about webkitSpeechRecognition
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    
-    recognition.onresult = (event: any) => {
-      const current = event.resultIndex;
-      const result = event.results[current][0].transcript;
-      setTranscript(result);
-    };
-    
-    recognition.onend = () => {
-      setIsListening(false);
-      if (transcript) {
-        onTextCaptured(transcript);
-        toast({
-          title: "Voice captured",
-          description: "Your voice input has been processed.",
-        });
-      }
-    };
-    
-    recognition.onerror = (event: any) => {
-      console.error("Speech recognition error", event.error);
-      setIsListening(false);
-      toast({
-        title: "Voice input error",
-        description: `Error: ${event.error}`,
-        variant: "destructive"
-      });
-    };
-    
-    recognition.start();
+    recognitionRef.current.start();
   };
 
   const stopListening = () => {
+    if (!recognitionRef.current) return;
     setIsListening(false);
-    // @ts-ignore
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.stop();
+    recognitionRef.current.stop();
   };
 
-  if (!isSupported) {
-    return null;
-  }
+  if (!isSupported) return null;
 
   return (
     <div>
-      <Button 
-        variant="outline" 
-        size="icon" 
+      <Button
+        variant="outline"
+        size="icon"
         onClick={toggleListening}
         aria-label={isListening ? "Stop voice input" : "Start voice input"}
         className={isListening ? "bg-red-100 dark:bg-red-900" : ""}
       >
         {isListening ? (
-          <motion.div
-            animate={{ scale: [1, 1.2, 1] }}
-            transition={{ repeat: Infinity, duration: 1.5 }}
-          >
+          <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}>
             <MicOff className="h-4 w-4 text-red-500" />
           </motion.div>
         ) : (
           <Mic className="h-4 w-4" />
         )}
       </Button>
-      {transcript && (
-        <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          "{transcript}"
-        </div>
-      )}
+
+      {transcript && <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">"{transcript}"</div>}
     </div>
   );
 }
