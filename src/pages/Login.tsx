@@ -103,7 +103,7 @@ const Login = () => {
         </CardContent>
         <CardFooter className="flex justify-center">
           <p className="text-sm text-gray-500">
-            For demo purposes, any email/password will work
+            For demo purposes, any email/password will work -Bettscy Doyal
           </p>
         </CardFooter>
       </Card>
