@@ -2,14 +2,31 @@
 import axios from 'axios';
 import { Task, TaskStatus } from "@/types/task";
 
+// Use environment variables or fallback to defaults
+// In production, set VITE_API_URL in your environment
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// Configure axios instance with defaults
+const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 10000, // 10 seconds timeout
+});
+
+// Add logging for debugging
+console.log('API URL configured as:', API_URL);
 
 // API service
 export const api = {
   // GET /tasks - Fetch all tasks
   async getTasks(): Promise<Task[]> {
     try {
-      const response = await axios.get(`${API_URL}/tasks`);
+      console.log('Fetching tasks from:', `${API_URL}/tasks`);
+      const response = await apiClient.get('/tasks');
+      
+      console.log('Tasks response:', response.data);
       
       // Transform MongoDB _id to id for frontend compatibility
       return response.data.map((task: any) => ({
@@ -28,10 +45,10 @@ export const api = {
   // GET /tasks/:id - Fetch a single task
   async getTaskById(id: string): Promise<Task | null> {
     try {
-      const response = await axios.get(`${API_URL}/tasks/${id}`);
+      console.log(`Fetching task with ID: ${id} from: ${API_URL}/tasks/${id}`);
+      const response = await apiClient.get(`/tasks/${id}`);
       const task = response.data;
       
-      console.log(`Fetching task with ID: ${id}`);
       console.log('Found task:', task);
       
       // Transform MongoDB _id to id for frontend compatibility
@@ -51,8 +68,11 @@ export const api = {
   // POST /tasks - Create a new task
   async createTask(task: Omit<Task, "id" | "createdAt">): Promise<Task> {
     try {
-      const response = await axios.post(`${API_URL}/tasks`, task);
+      console.log('Creating task:', task);
+      const response = await apiClient.post('/tasks', task);
       const newTask = response.data;
+      
+      console.log('New task created:', newTask);
       
       // Transform MongoDB _id to id for frontend compatibility
       return {
@@ -71,8 +91,11 @@ export const api = {
   // PUT /tasks/:id - Update a task
   async updateTask(id: string, updates: Partial<Task>): Promise<Task | null> {
     try {
-      const response = await axios.put(`${API_URL}/tasks/${id}`, updates);
+      console.log(`Updating task with ID: ${id}`, updates);
+      const response = await apiClient.put(`/tasks/${id}`, updates);
       const updatedTask = response.data;
+      
+      console.log('Task updated:', updatedTask);
       
       // Transform MongoDB _id to id for frontend compatibility
       return {
@@ -91,7 +114,9 @@ export const api = {
   // DELETE /tasks/:id - Delete a task
   async deleteTask(id: string): Promise<boolean> {
     try {
-      await axios.delete(`${API_URL}/tasks/${id}`);
+      console.log(`Deleting task with ID: ${id}`);
+      await apiClient.delete(`/tasks/${id}`);
+      console.log(`Task ${id} deleted successfully`);
       return true;
     } catch (error) {
       console.error(`Error deleting task with ID ${id}:`, error);

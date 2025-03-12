@@ -12,6 +12,8 @@ interface TaskContextType {
   deleteTask: (id: string) => Promise<void>;
   getTask: (id: string) => Promise<Task | null>;
   isLoading: boolean;
+  hasError: boolean;
+  errorMessage: string;
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -35,6 +37,8 @@ const TaskContext = createContext<TaskContextType | undefined>(undefined);
 export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,16 +78,27 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   const fetchTasks = async () => {
     setIsLoading(true);
+    setHasError(false);
+    setErrorMessage("");
+    
     try {
+      console.log("Fetching tasks from API...");
       const data = await api.getTasks();
+      console.log("Tasks fetched successfully:", data);
       setTasks(data);
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error fetching tasks:", error);
+      setHasError(true);
+      setErrorMessage(error.message || "Failed to connect to the backend. Please ensure the server is running.");
+      
       toast({
         title: "Error fetching tasks",
-        description: "Could not fetch your tasks. Please try again.",
+        description: "Could not connect to the server. Please check if the backend is running.",
         variant: "destructive",
       });
-      console.error("Error fetching tasks:", error);
+      
+      // Set empty array to prevent UI errors
+      setTasks([]);
     } finally {
       setIsLoading(false);
     }
@@ -187,6 +202,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         deleteTask, 
         getTask,
         isLoading,
+        hasError,
+        errorMessage,
         pagination: {
           currentPage,
           totalPages,
