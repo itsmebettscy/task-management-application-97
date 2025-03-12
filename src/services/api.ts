@@ -20,10 +20,8 @@ console.log('API URL configured as:', API_URL);
 
 // In-memory fallback data for when the server is unavailable
 let localTasks: Task[] = [];
-let taskCounter = 0;
-
-// Helper to generate IDs for local tasks
-const generateLocalId = () => `local-${Date.now()}-${taskCounter++}`;
+// Use a proper UUID approach to avoid duplication issues
+const generateLocalId = () => `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
 // API service
 export const api = {
@@ -44,13 +42,13 @@ export const api = {
         createdAt: task.createdAt
       }));
       
-      // Update local cache
+      // Replace local cache instead of appending
       localTasks = tasks;
       return tasks;
     } catch (error) {
       console.error('Error fetching tasks:', error);
       console.warn('Using local fallback tasks since the backend is unavailable');
-      return localTasks;
+      return [...localTasks]; // Return a copy to avoid reference issues
     }
   },
 
@@ -60,7 +58,7 @@ export const api = {
       // Check if the ID is local
       if (id.startsWith('local-')) {
         const localTask = localTasks.find(task => task.id === id);
-        return localTask || null;
+        return localTask ? {...localTask} : null;
       }
       
       console.log(`Fetching task with ID: ${id} from: ${API_URL}/tasks/${id}`);
@@ -81,7 +79,7 @@ export const api = {
       console.error(`Error fetching task with ID ${id}:`, error);
       // Try to find the task in the local cache
       const cachedTask = localTasks.find(task => task.id === id);
-      return cachedTask || null;
+      return cachedTask ? {...cachedTask} : null;
     }
   },
 
@@ -103,6 +101,9 @@ export const api = {
         createdAt: newTask.createdAt
       };
       
+      // Update local cache with the new task
+      localTasks = [...localTasks, transformedTask];
+      
       return transformedTask;
     } catch (error) {
       console.error('Error creating task:', error);
@@ -117,7 +118,8 @@ export const api = {
       };
       
       console.log('Created local fallback task:', localTask);
-      localTasks.push(localTask);
+      // Add to local tasks array
+      localTasks = [...localTasks, localTask];
       
       return localTask;
     }
@@ -131,7 +133,12 @@ export const api = {
         const index = localTasks.findIndex(task => task.id === id);
         if (index !== -1) {
           const updatedTask = { ...localTasks[index], ...updates };
-          localTasks[index] = updatedTask;
+          // Create a new array with the updated task
+          localTasks = [
+            ...localTasks.slice(0, index),
+            updatedTask,
+            ...localTasks.slice(index + 1)
+          ];
           return updatedTask;
         }
         return null;
@@ -155,7 +162,12 @@ export const api = {
       // Update in local cache
       const cachedIndex = localTasks.findIndex(task => task.id === id);
       if (cachedIndex !== -1) {
-        localTasks[cachedIndex] = transformedTask;
+        // Create a new array with the updated task
+        localTasks = [
+          ...localTasks.slice(0, cachedIndex),
+          transformedTask,
+          ...localTasks.slice(cachedIndex + 1)
+        ];
       }
       
       return transformedTask;
@@ -166,7 +178,12 @@ export const api = {
       const index = localTasks.findIndex(task => task.id === id);
       if (index !== -1) {
         const updatedTask = { ...localTasks[index], ...updates };
-        localTasks[index] = updatedTask;
+        // Create a new array with the updated task
+        localTasks = [
+          ...localTasks.slice(0, index),
+          updatedTask,
+          ...localTasks.slice(index + 1)
+        ];
         return updatedTask;
       }
       
@@ -179,8 +196,9 @@ export const api = {
     try {
       // If it's a local task, delete it locally
       if (id.startsWith('local-')) {
+        const initialLength = localTasks.length;
         localTasks = localTasks.filter(task => task.id !== id);
-        return true;
+        return localTasks.length < initialLength;
       }
       
       console.log(`Deleting task with ID: ${id}`);

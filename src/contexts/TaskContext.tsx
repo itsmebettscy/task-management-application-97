@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Task, TaskStatus } from "@/types/task";
 import { api } from "@/services/api";
@@ -108,7 +109,16 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const newTask = await api.createTask(task);
-      setTasks((prevTasks) => [...prevTasks, newTask]);
+      // Set state with a function to ensure we're not creating duplicates
+      setTasks(prevTasks => {
+        // Ensure we don't add the same task twice by checking if it already exists
+        const taskExists = prevTasks.some(t => t.id === newTask.id);
+        if (taskExists) {
+          return prevTasks;
+        }
+        return [...prevTasks, newTask];
+      });
+      
       toast({
         title: "Task created",
         description: "Your task has been created successfully.",
@@ -130,8 +140,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     try {
       const updatedTask = await api.updateTask(id, updates);
       if (updatedTask) {
-        setTasks((prevTasks) =>
-          prevTasks.map((task) => (task.id === id ? updatedTask : task))
+        setTasks(prevTasks =>
+          prevTasks.map(task => (task.id === id ? updatedTask : task))
         );
         toast({
           title: "Task updated",
@@ -155,7 +165,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     try {
       const success = await api.deleteTask(id);
       if (success) {
-        setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
+        setTasks(prevTasks => prevTasks.filter(task => task.id !== id));
         toast({
           title: "Task deleted",
           description: "Your task has been deleted successfully.",
