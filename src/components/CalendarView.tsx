@@ -1,57 +1,35 @@
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import { Task } from "@/types/task";
 import { TaskCard } from "./TaskCard";
-import { format, isSameDay, parseISO } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import { useTask } from "@/contexts/TaskContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function CalendarView() {
-  const { tasks } = useTask();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const { tasks = [] } = useTask(); // Ensure tasks is always an array
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
 
-  // Ensure `createdAt` is always valid
-  const tasksForSelectedDay = tasks.filter((task) => {
-    if (!task.createdAt) return false;
-    const taskDate = new Date(task.createdAt);
-    return isSameDay(taskDate, selectedDate);
-  });
+  const tasksForSelectedDay = tasks.filter(task =>
+    selectedDate ? isSameDay(new Date(task.createdAt), selectedDate) : false
+  );
 
-  // Count tasks by date
-  const tasksByDate = tasks.reduce((acc, task) => {
-    if (!task.createdAt) return acc;
+  const tasksByDate = tasks.reduce<Record<string, number>>((acc, task) => {
     const date = format(new Date(task.createdAt), "yyyy-MM-dd");
     acc[date] = (acc[date] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>);
+  }, {});
 
   return (
     <div className="flex flex-col md:flex-row gap-6 pb-6">
-      {/* Calendar Section */}
       <div className="w-full md:w-1/3">
         <Calendar
           mode="single"
           selected={selectedDate}
-          onSelect={(date) => setSelectedDate(date || new Date())} // Ensures a valid date is always set
+          onSelect={setSelectedDate}
           className="bg-card rounded-lg p-3 shadow"
-          dayContentRenderer={(day) => {
-            const dateKey = format(day, "yyyy-MM-dd");
-            const taskCount = tasksByDate[dateKey] || 0;
-            return (
-              <div className="relative flex justify-center items-center h-full">
-                <div>{day.getDate()}</div>
-                {taskCount > 0 && (
-                  <div className="absolute bottom-1 w-4 h-4 bg-primary text-primary-foreground rounded-full text-xs flex items-center justify-center">
-                    {taskCount}
-                  </div>
-                )}
-              </div>
-            );
-          }}
         />
       </div>
 
-      {/* Task List Section */}
       <div className="w-full md:w-2/3">
         <div className="bg-card rounded-lg shadow p-4">
           <h2 className="text-xl font-semibold mb-4">
@@ -61,7 +39,7 @@ export function CalendarView() {
           <div className="space-y-4">
             <AnimatePresence>
               {tasksForSelectedDay.length > 0 ? (
-                tasksForSelectedDay.map((task) => (
+                tasksForSelectedDay.map(task => (
                   <motion.div
                     key={task.id}
                     initial={{ opacity: 0, y: 10 }}
