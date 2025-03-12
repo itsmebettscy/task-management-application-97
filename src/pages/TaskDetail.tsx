@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTask } from "@/contexts/TaskContext";
@@ -37,12 +38,15 @@ const statusLabels = {
 function TaskDetailContent() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getTask, deleteTask, isLoading, fetchTasks } = useTask();
+  const { getTask, deleteTask, isLoading } = useTask();
   const [task, setTask] = useState<Task | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Use a ref to track if we've already fetched the task
+  const [fetchedTaskId, setFetchedTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadTask() {
@@ -52,17 +56,21 @@ function TaskDetailContent() {
         return;
       }
       
+      // Only fetch if we haven't already fetched this task
+      if (id === fetchedTaskId && task !== null) {
+        return;
+      }
+      
       try {
         console.log(`Loading task with ID: ${id}`);
         setLoading(true);
-        
-        await fetchTasks();
         
         const taskData = await getTask(id);
         console.log("Task data loaded:", taskData);
         
         if (taskData) {
           setTask(taskData);
+          setFetchedTaskId(id);
         } else {
           console.error("Task not found");
           toast({
@@ -84,7 +92,7 @@ function TaskDetailContent() {
     }
     
     loadTask();
-  }, [id, getTask, toast, fetchTasks]);
+  }, [id, getTask, toast]);
 
   const handleDelete = async () => {
     if (!task) return;
@@ -102,6 +110,18 @@ function TaskDetailContent() {
         description: "Failed to delete task",
         variant: "destructive",
       });
+    }
+  };
+
+  // Use memo for task update callback to prevent unnecessary re-renders
+  const handleTaskUpdate = async () => {
+    setIsEditOpen(false);
+    
+    if (id) {
+      const updatedTask = await getTask(id);
+      if (updatedTask) {
+        setTask(updatedTask);
+      }
     }
   };
 
@@ -132,7 +152,7 @@ function TaskDetailContent() {
   const formattedTime = new Date(task.createdAt).toLocaleTimeString();
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-12 animate-fade-in">
+    <div className="min-h-screen bg-gray-50 pt-12">
       <div className="container max-w-4xl mx-auto px-4">
         <Button 
           variant="outline" 
@@ -164,12 +184,7 @@ function TaskDetailContent() {
                   </DialogHeader>
                   <TaskForm 
                     initialData={task}
-                    onSubmit={() => {
-                      setIsEditOpen(false);
-                      getTask(task.id).then(updatedTask => {
-                        if (updatedTask) setTask(updatedTask);
-                      });
-                    }}
+                    onSubmit={handleTaskUpdate}
                     mode="edit"
                   />
                 </DialogContent>

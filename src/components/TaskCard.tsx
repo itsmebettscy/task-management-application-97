@@ -1,9 +1,10 @@
+
 import { Task } from "@/types/task";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { useState, memo } from "react";
 import { useTask } from "@/contexts/TaskContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { TaskForm } from "./TaskForm";
@@ -21,12 +22,12 @@ const statusLabels = {
   "completed": "Completed",
 };
 
-export function TaskCard({ task }: { task: Task }) {
+function TaskCardComponent({ task }: { task: Task }) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const { deleteTask, isLoading } = useTask();
 
   return (
-    <Card className="p-6 space-y-4 transition-all duration-300 hover:shadow-lg animate-fade-in group">
+    <Card className="p-6 space-y-4 transition-all duration-300 hover:shadow-lg group">
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <Badge variant="outline" className={`${statusColors[task.status]} text-white`}>
@@ -79,3 +80,6 @@ export function TaskCard({ task }: { task: Task }) {
     </Card>
   );
 }
+
+// Memoize the component to prevent unnecessary re-renders
+export const TaskCard = memo(TaskCardComponent);

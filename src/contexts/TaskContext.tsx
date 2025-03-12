@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Task, TaskStatus } from "@/types/task";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +47,9 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
+  
+  // Track if we've already attempted to fetch tasks
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
   const filteredTasks = React.useMemo(() => {
     return tasks.filter((task) => {
@@ -74,13 +77,20 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   }, [totalPages, currentPage]);
 
   useEffect(() => {
-    fetchTasks();
+    if (!hasAttemptedFetch) {
+      fetchTasks();
+    }
   }, []);
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
+    if (isLoading) {
+      return; // Prevent multiple simultaneous fetch requests
+    }
+    
     setIsLoading(true);
     setHasError(false);
     setErrorMessage("");
+    setHasAttemptedFetch(true);
     
     try {
       console.log("Fetching tasks from API...");
@@ -103,7 +113,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   const addTask = async (task: Omit<Task, "id" | "createdAt">) => {
     setIsLoading(true);
@@ -183,55 +193,81 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const getTask = async (id: string) => {
+  const getTask = useCallback(async (id: string) => {
     try {
       console.log(`Getting task with ID: ${id} from context`);
+      // First check if task is in our local state
       const cachedTask = tasks.find(task => task.id === id);
       if (cachedTask) {
         console.log("Found task in context state:", cachedTask);
         return cachedTask;
       }
       
+      // If not in state, get from API
       const taskData = await api.getTaskById(id);
       console.log("Task from API:", taskData);
+      
+      // If task was found via API but not in our state, add it
+      if (taskData && !tasks.some(t => t.id === taskData.id)) {
+        setTasks(prev => [...prev, taskData]);
+      }
+      
       return taskData;
     } catch (error) {
       console.error("Error getting task:", error);
       return null;
     }
-  };
+  }, [tasks]);
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = React.useMemo(() => ({
+    tasks, 
+    paginatedTasks,
+    filteredTasks,
+    addTask, 
+    updateTask, 
+    deleteTask, 
+    getTask,
+    isLoading,
+    hasError,
+    errorMessage,
+    pagination: {
+      currentPage,
+      totalPages,
+      pageSize,
+      setCurrentPage,
+      setPageSize,
+    },
+    search: {
+      searchTerm,
+      setSearchTerm,
+    },
+    filter: {
+      statusFilter,
+      setStatusFilter,
+    },
+    fetchTasks
+  }), [
+    tasks, 
+    paginatedTasks,
+    filteredTasks,
+    addTask, 
+    updateTask, 
+    deleteTask, 
+    getTask,
+    isLoading,
+    hasError,
+    errorMessage,
+    currentPage,
+    totalPages,
+    pageSize,
+    searchTerm,
+    statusFilter,
+    fetchTasks
+  ]);
 
   return (
-    <TaskContext.Provider
-      value={{ 
-        tasks, 
-        paginatedTasks,
-        filteredTasks,
-        addTask, 
-        updateTask, 
-        deleteTask, 
-        getTask,
-        isLoading,
-        hasError,
-        errorMessage,
-        pagination: {
-          currentPage,
-          totalPages,
-          pageSize,
-          setCurrentPage,
-          setPageSize,
-        },
-        search: {
-          searchTerm,
-          setSearchTerm,
-        },
-        filter: {
-          statusFilter,
-          setStatusFilter,
-        },
-        fetchTasks
-      }}
-    >
+    <TaskContext.Provider value={contextValue}>
       {children}
     </TaskContext.Provider>
   );
