@@ -8,17 +8,16 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export function CalendarView() {
   const { tasks } = useTask();
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  // Ensure `createdAt` is parsed correctly
-  const tasksForSelectedDay = selectedDate
-    ? tasks.filter(task => {
-        const taskDate = task.createdAt ? new Date(task.createdAt) : null;
-        return taskDate && isSameDay(taskDate, selectedDate);
-      })
-    : [];
+  // Ensure `createdAt` is always valid
+  const tasksForSelectedDay = tasks.filter((task) => {
+    if (!task.createdAt) return false;
+    const taskDate = new Date(task.createdAt);
+    return isSameDay(taskDate, selectedDate);
+  });
 
-  // Group tasks by date for calendar indicator
+  // Count tasks by date
   const tasksByDate = tasks.reduce((acc, task) => {
     if (!task.createdAt) return acc;
     const date = format(new Date(task.createdAt), "yyyy-MM-dd");
@@ -33,7 +32,7 @@ export function CalendarView() {
         <Calendar
           mode="single"
           selected={selectedDate}
-          onSelect={setSelectedDate}
+          onSelect={(date) => setSelectedDate(date || new Date())} // Ensures a valid date is always set
           className="bg-card rounded-lg p-3 shadow"
           dayContentRenderer={(day) => {
             const dateKey = format(day, "yyyy-MM-dd");
@@ -62,7 +61,7 @@ export function CalendarView() {
           <div className="space-y-4">
             <AnimatePresence>
               {tasksForSelectedDay.length > 0 ? (
-                tasksForSelectedDay.map(task => (
+                tasksForSelectedDay.map((task) => (
                   <motion.div
                     key={task.id}
                     initial={{ opacity: 0, y: 10 }}
