@@ -77,26 +77,32 @@ export function KanbanBoard() {
                     <AnimatePresence>
                       {columnTasks.map((task, index) => (
                         <Draggable key={task.id} draggableId={task.id} index={index}>
-                          {(provided, snapshot) => (
-                            <motion.div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              transition={{ duration: 0.2 }}
-                              style={{
-                                ...provided.draggableProps.style,
-                                transform: snapshot.isDragging
-                                  ? provided.draggableProps.style?.transform
-                                  : "none",
-                              }}
-                              className={snapshot.isDragging ? "z-50" : ""}
-                            >
-                              <TaskCard task={task} />
-                            </motion.div>
-                          )}
+                          {(provided, snapshot) => {
+                            // Separate draggable and motion props to avoid type conflicts
+                            return (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                style={{
+                                  ...provided.draggableProps.style,
+                                  transform: snapshot.isDragging
+                                    ? provided.draggableProps.style?.transform
+                                    : "none",
+                                }}
+                                className={snapshot.isDragging ? "z-50" : ""}
+                              >
+                                <motion.div
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -10 }}
+                                  transition={{ duration: 0.2 }}
+                                >
+                                  <TaskCard task={task} />
+                                </motion.div>
+                              </div>
+                            );
+                          }}
                         </Draggable>
                       ))}
                     </AnimatePresence>
